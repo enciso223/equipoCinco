@@ -16,7 +16,7 @@
 
         <!-- Activity principal -->
         <activity
-            android:name="com.example.miniproyecto1.ui.MainActivity"
+            android:name="com.univalle.equipocinco.ui.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.InventoryWidget">
             <intent-filter>
@@ -27,12 +27,12 @@
 
         <!-- Widget Provider -->
         <receiver
-            android:name="com.example.miniproyecto1.widget.InventoryWidgetProvider"
+            android:name="com.univalle.equipocinco.widget.InventoryWidgetProvider"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.example.miniproyecto1.TOGGLE_BALANCE" />
-                <action android:name="com.example.miniproyecto1.OPEN_APP" />
+                <action android:name="com.univalle.equipocinco.TOGGLE_BALANCE" />
+                <action android:name="com.univalle.equipocinco.OPEN_APP" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

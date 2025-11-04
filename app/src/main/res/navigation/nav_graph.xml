@@ -6,7 +6,7 @@
 
     <fragment
         android:id="@+id/loginFragment"
-        android:name="com.example.miniproyecto1.ui.login.LoginFragment"
+        android:name="equipocinco.ui.login.LoginFragment"
         android:label="LoginFragment">
         <action
             android:id="@+id/action_loginFragment_to_homeFragment"
@@ -17,7 +17,7 @@
 
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.example.miniproyecto1.ui.home.HomeFragment"
+        android:name="equipocinco.ui.home.HomeFragment"
         android:label="HomeFragment">
         <action
             android:id="@+id/action_homeFragment_to_loginFragment"
@@ -34,7 +34,7 @@
 
     <fragment
         android:id="@+id/addProductFragment"
-        android:name="com.example.miniproyecto1.ui.addproduct.AddProductFragment"
+        android:name="equipocinco.ui.addproduct.AddProductFragment"
         android:label="AddProductFragment">
         <action
             android:id="@+id/action_addProductFragment_to_homeFragment"
@@ -45,14 +45,21 @@
 
     <fragment
         android:id="@+id/productDetailFragment"
-        android:name="com.example.miniproyecto1.ui.detail.ProductDetailFragment"
+        android:name="equipocinco.ui.detail.ProductDetailFragment"
         android:label="ProductDetailFragment">
+
+        <!-- ✅ ARGUMENTO CON VALOR POR DEFECTO (CRÍTICO) -->
         <argument
             android:name="productId"
-            app:argType="integer" />
+            app:argType="integer"
+            android:defaultValue="-1" />
+
+        <!-- ✅ NAVEGACIÓN A EDITAR PRODUCTO -->
         <action
             android:id="@+id/action_productDetailFragment_to_editProductFragment"
             app:destination="@id/editProductFragment" />
+
+        <!-- ✅ NAVEGACIÓN DE REGRESO AL HOME -->
         <action
             android:id="@+id/action_productDetailFragment_to_homeFragment"
             app:destination="@id/homeFragment"
@@ -62,7 +69,7 @@
 
     <fragment
         android:id="@+id/editProductFragment"
-        android:name="com.example.miniproyecto1.ui.editproduct.EditProductFragment"
+        android:name="equipocinco.ui.editproduct.EditProductFragment"
         android:label="EditProductFragment">
         <argument
             android:name="productId"
