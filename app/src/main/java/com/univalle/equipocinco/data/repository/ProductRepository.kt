@@ -1,40 +1,37 @@
 package com.univalle.equipocinco.data.repository
 
-import com.univalle.equipocinco.data.local.dao.ProductDao
-import com.univalle.equipocinco.data.local.entity.Product
+import com.univalle.equipocinco.data.remote.dto.ProductDto
+import com.univalle.equipocinco.data.remote.firebase.FirestoreService
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class ProductRepository(
-    private val productDao: ProductDao
+@Singleton
+class ProductRepository @Inject constructor(
+    private val firestoreService: FirestoreService
 ) {
 
-    // ✅ Obtener todos los productos como Flow
-    fun getAllProducts(): Flow<List<Product>> {
-        return productDao.getAllProducts()
+    fun getAllProducts(): Flow<List<ProductDto>> {
+        return firestoreService.getAllProducts()
     }
 
-    // ✅ Obtener producto por ID
-    suspend fun getProductById(id: Int): Product? {
-        return productDao.getProductById(id)
+    suspend fun getProductById(id: String): ProductDto? {
+        return firestoreService.getProductById(id)
     }
 
-    // ✅ Insertar producto
-    suspend fun insertProduct(product: Product) {
-        productDao.insertProduct(product)
+    suspend fun insertProduct(product: ProductDto): Result<String> {
+        return firestoreService.insertProduct(product)
     }
 
-    // ✅ Actualizar producto
-    suspend fun updateProduct(product: Product) {
-        productDao.updateProduct(product)
+    suspend fun updateProduct(product: ProductDto): Result<Unit> {
+        return firestoreService.updateProduct(product)
     }
 
-    // ✅ Eliminar producto
-    suspend fun deleteProduct(product: Product) {
-        productDao.deleteProduct(product)
+    suspend fun deleteProduct(productId: String): Result<Unit> {
+        return firestoreService.deleteProduct(productId)
     }
 
-    // ✅ Obtener valor total del inventario
-    suspend fun getTotalInventoryValue(): Double {
-        return productDao.getTotalInventoryValue() ?: 0.0
+    fun getTotalInventoryValue(): Flow<Double> {
+        return firestoreService.getTotalInventoryValue()
     }
 }
