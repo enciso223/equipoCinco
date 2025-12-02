@@ -14,11 +14,13 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.univalle.equipocinco.R
 import com.univalle.equipocinco.databinding.FragmentProductDetailBinding
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
+@AndroidEntryPoint
 class ProductDetailFragment : Fragment() {
 
     private var _binding: FragmentProductDetailBinding? = null
@@ -39,7 +41,6 @@ class ProductDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Cargar producto
         viewModel.loadProduct(args.productId)
 
         setupToolbar()
@@ -63,7 +64,7 @@ class ProductDetailFragment : Fragment() {
                         onDeleted = {
                             findNavController().navigate(R.id.action_productDetailFragment_to_homeFragment)
                         },
-                        onError = { /* No-op: podrías mostrar un Toast */ }
+                        onError = { /* No-op: could show a Toast */ }
                     )
                 }
                 .show()
@@ -85,7 +86,7 @@ class ProductDetailFragment : Fragment() {
                         binding.tvName.text = product.name
                         binding.tvPriceValue.text = formatCurrency(product.price)
                         binding.tvQuantityValue.text = "${product.quantity}"
-                        binding.tvTotalValue.text = formatCurrency(product.price * product.quantity)
+                        binding.tvTotalValue.text = formatCurrency(product.getTotal())
                     }
                 }
             }

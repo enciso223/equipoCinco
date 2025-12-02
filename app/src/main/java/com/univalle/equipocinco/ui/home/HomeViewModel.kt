@@ -1,31 +1,40 @@
 package com.univalle.equipocinco.ui.home
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.univalle.equipocinco.data.local.database.InventoryDatabase
-import com.univalle.equipocinco.data.local.entity.Product
+import com.univalle.equipocinco.data.remote.dto.ProductDto
+import com.univalle.equipocinco.data.remote.firebase.FirebaseAuthService
 import com.univalle.equipocinco.data.repository.ProductRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class HomeViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val repository: ProductRepository,
+    private val authService: FirebaseAuthService
+) : ViewModel() {
 
-    private val repository: ProductRepository
+    private val _products = MutableStateFlow<List<ProductDto>>(emptyList())
+    val products: StateFlow<List<ProductDto>> = _products.asStateFlow()
 
-    // Lista de productos (StateFlow para observación reactiva)
-    private val _products = MutableStateFlow<List<Product>>(emptyList())
-    val products: StateFlow<List<Product>> = _products.asStateFlow()
-
-    // Estado de carga (para mostrar/ocultar el ProgressBar)
-    private val _isLoading = MutableStateFlow(true)
+    private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    init {
-        val productDao = InventoryDatabase.getDatabase(application).productDao()
-        repository = ProductRepository(productDao)  // ✅ Constructor directo
+    fun loadProducts() {
+        val userId = authService.getUserId()
+
+        if (userId.isNullOrBlank()) {
+            // usuario NO logeado → no cargar productos
+            _products.value = emptyList()
+            _isLoading.value = false
+            return
+        }
+
+        _isLoading.value = true
 
         viewModelScope.launch {
             repository.getAllProducts().collect { productList ->
@@ -34,5 +43,4 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
-
 }

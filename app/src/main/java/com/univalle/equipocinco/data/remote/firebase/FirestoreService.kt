@@ -1,5 +1,6 @@
 package com.univalle.equipocinco.data.remote.firebase
 
+import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.univalle.equipocinco.data.remote.dto.ProductDto
@@ -16,19 +17,31 @@ class FirestoreService @Inject constructor(
     private val authService: FirebaseAuthService
 ) {
 
-    private fun getUserCollection() =
-        firestore.collection("users")
-            .document(authService.getUserId() ?: "")
-            .collection("products")
+    private fun getUserCollection(): CollectionReference {
+        val userId = authService.getUserId()
+            ?: throw IllegalStateException("User not authenticated. UID is null.")
 
-    // Obtener todos los productos como Flow (tiempo real)
+        return firestore
+            .collection("users")
+            .document(userId)
+            .collection("products")
+    }
+
+
     fun getAllProducts(): Flow<List<ProductDto>> = callbackFlow {
-        val listener = getUserCollection()
-            .orderBy("code", Query.Direction.ASCENDING)
+        val collection = try {
+            getUserCollection()
+        } catch (e: Exception) {
+            trySend(emptyList())
+            close(e)
+            return@callbackFlow
+        }
+
+        val listener = collection
+            .orderBy("code")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
+                    close(error); return@addSnapshotListener
                 }
 
                 val products = snapshot?.documents?.mapNotNull { doc ->
@@ -40,6 +53,8 @@ class FirestoreService @Inject constructor(
 
         awaitClose { listener.remove() }
     }
+
+
 
     // Obtener producto por ID
     suspend fun getProductById(productId: String): ProductDto? {

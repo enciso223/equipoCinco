@@ -7,11 +7,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.univalle.equipocinco.R
-import com.univalle.equipocinco.data.local.database.InventoryDatabase
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.*
 
@@ -45,7 +43,6 @@ class InventoryWidgetProvider : AppWidgetProvider() {
             }
 
             ACTION_OPEN_LOGIN -> {
-                // Abre la HU2 (login)
                 val loginIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
                 loginIntent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(loginIntent)
@@ -56,14 +53,14 @@ class InventoryWidgetProvider : AppWidgetProvider() {
     private fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
         val views = RemoteViews(context.packageName, R.layout.inventory_widget)
 
-        // Listener para el icono del ojo
+        // Toggle eye icon
         val toggleIntent = Intent(context, InventoryWidgetProvider::class.java).setAction(ACTION_TOGGLE_SALDO)
         val togglePending = PendingIntent.getBroadcast(
             context, 0, toggleIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         views.setOnClickPendingIntent(R.id.img_eye, togglePending)
 
-        // Listener para el botón "Gestionar inventario"
+        // Manage inventory button
         val manageIntent = Intent(context, InventoryWidgetProvider::class.java).setAction(ACTION_OPEN_LOGIN)
         val managePending = PendingIntent.getBroadcast(
             context, 1, manageIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -71,36 +68,51 @@ class InventoryWidgetProvider : AppWidgetProvider() {
         views.setOnClickPendingIntent(R.id.ll_manage, managePending)
         views.setOnClickPendingIntent(R.id.img_manage, managePending)
 
-        // Leer preferencia (mostrar/ocultar saldo)
+        // Show/hide balance
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val showSaldo = prefs.getBoolean(PREF_SHOW_SALDO, false)
 
         if (showSaldo) {
-            // Mostrar saldo real
             views.setImageViewResource(R.id.img_eye, R.drawable.ic_eye_closed)
-            loadSaldoFromDatabase(context) { saldoFormateado ->
+            loadSaldoFromFirestore(context) { saldoFormateado ->
                 views.setTextViewText(R.id.tv_saldo, saldoFormateado)
                 manager.updateAppWidget(widgetId, views)
             }
         } else {
-            // Mostrar saldo oculto
             views.setImageViewResource(R.id.img_eye, R.drawable.ic_eye_open)
             views.setTextViewText(R.id.tv_saldo, "$****")
             manager.updateAppWidget(widgetId, views)
         }
     }
 
-    /** Calcula el saldo desde la base de datos Room */
-    private fun loadSaldoFromDatabase(context: Context, callback: (String) -> Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val db = InventoryDatabase.getDatabase(context)
-            val total = db.productDao().getTotalInventoryValue() ?: 0.0
-            val saldoFormateado = formatCurrency(total)
-            callback(saldoFormateado)
+    private fun loadSaldoFromFirestore(context: Context, callback: (String) -> Unit) {
+        val auth = FirebaseAuth.getInstance()
+        val userId = auth.currentUser?.uid
+
+        if (userId == null) {
+            callback("$0.00")
+            return
         }
+
+        val firestore = FirebaseFirestore.getInstance()
+        firestore.collection("users")
+            .document(userId)
+            .collection("products")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val total = snapshot.documents.sumOf { doc ->
+                    val price = doc.getDouble("price") ?: 0.0
+                    val quantity = doc.getLong("quantity")?.toInt() ?: 0
+                    price * quantity
+                }
+                val formatted = formatCurrency(total)
+                callback(formatted)
+            }
+            .addOnFailureListener {
+                callback("$0.00")
+            }
     }
 
-    /** Formatea con separadores y dos decimales */
     private fun formatCurrency(value: Double): String {
         val nf = NumberFormat.getNumberInstance(Locale("es", "CO"))
         nf.minimumFractionDigits = 2

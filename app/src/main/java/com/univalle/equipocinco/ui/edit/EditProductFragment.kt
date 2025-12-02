@@ -12,27 +12,24 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.navigation.fragment.navArgs
 import com.univalle.equipocinco.R
-import com.univalle.equipocinco.data.local.entity.Product
+import com.univalle.equipocinco.data.remote.dto.ProductDto
 import com.univalle.equipocinco.databinding.FragmentEditProductBinding
 import com.univalle.equipocinco.ui.home.ProductViewModel
-import com.univalle.equipocinco.ui.home.ProductViewModelFactory
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.collect
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
-import java.util.Locale
 
+@AndroidEntryPoint
 class EditProductFragment : Fragment() {
 
     private var _binding: FragmentEditProductBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: ProductViewModel by viewModels {
-        ProductViewModelFactory(requireContext())
-    }
+    private val viewModel: ProductViewModel by viewModels()
+    private val args: EditProductFragmentArgs by navArgs()
 
-    private var productId: Int = -1
+    private var currentProduct: ProductDto? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -45,9 +42,6 @@ class EditProductFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        productId = arguments?.getInt("productId") ?: -1
-
 
         setupToolbar()
         setupInputFilters()
@@ -112,19 +106,17 @@ class EditProductFragment : Fragment() {
 
     private fun loadProduct() {
         lifecycleScope.launch {
-            viewModel.getProductById(productId).collect { product ->
+            viewModel.getProductById(args.productId).collect { product ->
                 if (product != null) {
-                    binding.txtProductId.text = product.id.toString()
+                    currentProduct = product
+                    binding.txtProductId.text = product.code.toString()
                     binding.edtName.setText(product.name)
                     binding.edtPrice.setText(product.price.toString())
-
                     binding.edtQuantity.setText(product.quantity.toString())
                 }
             }
         }
     }
-
-
 
     private fun setupListeners() {
         binding.btnSaveChanges.setOnClickListener {
@@ -136,8 +128,9 @@ class EditProductFragment : Fragment() {
         binding.btnSaveChanges.isEnabled = false
 
         try {
-            val updated = Product(
-                id = productId,
+            val current = currentProduct ?: return
+
+            val updated = current.copy(
                 name = binding.edtName.text.toString().trim(),
                 price = binding.edtPrice.text.toString().trim().toDouble(),
                 quantity = binding.edtQuantity.text.toString().trim().toInt()
@@ -166,4 +159,3 @@ class EditProductFragment : Fragment() {
         _binding = null
     }
 }
-

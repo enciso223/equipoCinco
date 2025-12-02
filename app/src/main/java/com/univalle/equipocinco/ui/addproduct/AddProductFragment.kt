@@ -13,20 +13,20 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.univalle.equipocinco.R
-import com.univalle.equipocinco.data.local.entity.Product
+import com.univalle.equipocinco.data.remote.dto.ProductDto
 import com.univalle.equipocinco.databinding.FragmentAddProductBinding
 import com.univalle.equipocinco.ui.home.ProductViewModel
-import com.univalle.equipocinco.ui.home.ProductViewModelFactory
-import kotlinx.coroutines.launch
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+
+@AndroidEntryPoint
 class AddProductFragment : Fragment() {
 
     private var _binding: FragmentAddProductBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: ProductViewModel by viewModels {
-        ProductViewModelFactory(requireContext())
-    }
+    private val viewModel: ProductViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -52,13 +52,10 @@ class AddProductFragment : Fragment() {
         }
     }
 
-
     private fun setupInputFilters() {
-        // Código producto: máximo 4 dígitos
         binding.etProductCode.filters = arrayOf(
             InputFilter.LengthFilter(4),
-            InputFilter { source, start, end, dest, dstart, dend ->
-                // Solo permite números
+            InputFilter { source, start, end, _, _, _ ->
                 for (i in start until end) {
                     if (!Character.isDigit(source[i])) {
                         return@InputFilter ""
@@ -68,14 +65,11 @@ class AddProductFragment : Fragment() {
             }
         )
 
-        // Nombre artículo: máximo 40 caracteres
         binding.etProductName.filters = arrayOf(InputFilter.LengthFilter(40))
 
-        // Precio: máximo 20 dígitos
         binding.etPrice.filters = arrayOf(
             InputFilter.LengthFilter(20),
-            InputFilter { source, start, end, dest, dstart, dend ->
-                // Solo permite números
+            InputFilter { source, start, end, _, _, _ ->
                 for (i in start until end) {
                     if (!Character.isDigit(source[i])) {
                         return@InputFilter ""
@@ -85,10 +79,8 @@ class AddProductFragment : Fragment() {
             }
         )
 
-        // Cantidad: solo números
         binding.etQuantity.filters = arrayOf(
-            InputFilter { source, start, end, dest, dstart, dend ->
-                // Solo permite números
+            InputFilter { source, start, end, _, _, _ ->
                 for (i in start until end) {
                     if (!Character.isDigit(source[i])) {
                         return@InputFilter ""
@@ -100,38 +92,21 @@ class AddProductFragment : Fragment() {
     }
 
     private fun setupTextWatchers() {
-        // Limpiar error cuando el usuario empiece a escribir
-        binding.etProductCode.addTextChangedListener(object : TextWatcher {
+        val watcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
                 binding.tilProductCode.error = null
-            }
-            override fun afterTextChanged(s: Editable?) {}
-        })
-
-        binding.etProductName.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 binding.tilProductName.error = null
-            }
-            override fun afterTextChanged(s: Editable?) {}
-        })
-
-        binding.etPrice.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 binding.tilPrice.error = null
-            }
-            override fun afterTextChanged(s: Editable?) {}
-        })
-
-        binding.etQuantity.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 binding.tilQuantity.error = null
             }
-            override fun afterTextChanged(s: Editable?) {}
-        })
+        }
+
+        binding.etProductCode.addTextChangedListener(watcher)
+        binding.etProductName.addTextChangedListener(watcher)
+        binding.etPrice.addTextChangedListener(watcher)
+        binding.etQuantity.addTextChangedListener(watcher)
     }
 
     private fun setupListeners() {
@@ -145,7 +120,6 @@ class AddProductFragment : Fragment() {
     private fun validateFields(): Boolean {
         var isValid = true
 
-        // Validar código producto
         val code = binding.etProductCode.text.toString().trim()
         if (code.isEmpty()) {
             binding.tilProductCode.error = "El código es requerido"
@@ -155,7 +129,6 @@ class AddProductFragment : Fragment() {
             isValid = false
         }
 
-        // Validar nombre artículo
         val name = binding.etProductName.text.toString().trim()
         if (name.isEmpty()) {
             binding.tilProductName.error = "El nombre es requerido"
@@ -165,7 +138,6 @@ class AddProductFragment : Fragment() {
             isValid = false
         }
 
-        // Validar precio
         val price = binding.etPrice.text.toString().trim()
         if (price.isEmpty()) {
             binding.tilPrice.error = "El precio es requerido"
@@ -186,7 +158,6 @@ class AddProductFragment : Fragment() {
             }
         }
 
-        // Validar cantidad
         val quantity = binding.etQuantity.text.toString().trim()
         if (quantity.isEmpty()) {
             binding.tilQuantity.error = "La cantidad es requerida"
@@ -218,9 +189,11 @@ class AddProductFragment : Fragment() {
 
             viewLifecycleOwner.lifecycleScope.launch {
                 try {
-                    val product = viewModel.getProductById(code).firstOrNull()
+                    // Check if product with this code already exists
+                    val existingProduct = viewModel.productsFlow.firstOrNull()
+                        ?.find { it.code == code }
 
-                    if (product != null) {
+                    if (existingProduct != null) {
                         binding.tilProductCode.error = "Este código ya existe"
                         binding.btnSave.isEnabled = true
                         Toast.makeText(
@@ -229,7 +202,13 @@ class AddProductFragment : Fragment() {
                             Toast.LENGTH_SHORT
                         ).show()
                     } else {
-                        val newProduct = Product(code, name, price, quantity)
+                        val newProduct = ProductDto(
+                            id = "", // Firestore will generate
+                            code = code,
+                            name = name,
+                            price = price,
+                            quantity = quantity
+                        )
                         viewModel.addProduct(newProduct)
 
                         Toast.makeText(
@@ -261,19 +240,6 @@ class AddProductFragment : Fragment() {
                 Toast.LENGTH_SHORT
             ).show()
         }
-    }
-
-
-    private fun clearFields() {
-        binding.etProductCode.text?.clear()
-        binding.etProductName.text?.clear()
-        binding.etPrice.text?.clear()
-        binding.etQuantity.text?.clear()
-
-        binding.tilProductCode.error = null
-        binding.tilProductName.error = null
-        binding.tilPrice.error = null
-        binding.tilQuantity.error = null
     }
 
     override fun onDestroyView() {
