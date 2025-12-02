@@ -71,10 +71,15 @@ class InventoryWidgetProvider : AppWidgetProvider() {
         val currentUser = auth.currentUser
 
         if (currentUser == null) {
-            // Usuario NO logueado → dirigir a Login
-            openLoginActivity(context)
+            // Ir al login, pero después del login debe ir al Home
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("destination", "login")
+                putExtra("fromWidget", false)
+                putExtra("goHomeAfterLogin", true)
+            }
+            context.startActivity(intent)
         } else {
-            // Usuario logueado → abrir Home directamente
             openHomeActivity(context)
         }
     }
@@ -83,6 +88,8 @@ class InventoryWidgetProvider : AppWidgetProvider() {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("destination", "login")
+            putExtra("fromWidget", true)
+            putExtra("goHomeAfterLogin", false)
         }
         context.startActivity(intent)
     }
@@ -91,6 +98,8 @@ class InventoryWidgetProvider : AppWidgetProvider() {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("destination", "home")
+            putExtra("fromWidget", true)
+            putExtra("goHomeAfterLogin", true)
         }
         context.startActivity(intent)
     }

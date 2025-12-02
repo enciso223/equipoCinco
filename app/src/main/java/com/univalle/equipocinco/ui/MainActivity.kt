@@ -9,10 +9,12 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
+    private var fromWidget: Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
+        fromWidget = intent.getBooleanExtra("fromWidget", false)
         handleWidgetNavigation()
     }
 
