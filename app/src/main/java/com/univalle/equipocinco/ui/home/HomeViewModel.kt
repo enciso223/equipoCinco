@@ -25,10 +25,8 @@ class HomeViewModel @Inject constructor(
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     fun loadProducts() {
-        val userId = authService.getUserId()
-
-        if (userId.isNullOrBlank()) {
-            // usuario NO logeado → no cargar productos
+        // Verificar que el usuario esté logueado
+        if (!authService.isUserLoggedIn()) {
             _products.value = emptyList()
             _isLoading.value = false
             return
@@ -37,8 +35,13 @@ class HomeViewModel @Inject constructor(
         _isLoading.value = true
 
         viewModelScope.launch {
-            repository.getAllProducts().collect { productList ->
-                _products.value = productList
+            try {
+                repository.getAllProducts().collect { productList ->
+                    _products.value = productList
+                    _isLoading.value = false
+                }
+            } catch (e: Exception) {
+                _products.value = emptyList()
                 _isLoading.value = false
             }
         }

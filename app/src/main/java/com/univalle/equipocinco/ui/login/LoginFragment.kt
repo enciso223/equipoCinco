@@ -1,21 +1,24 @@
 package com.univalle.equipocinco.ui.login
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.univalle.equipocinco.R
 import com.univalle.equipocinco.databinding.FragmentLoginBinding
 import com.univalle.equipocinco.util.SessionManager
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 
-
+@AndroidEntryPoint
 class LoginFragment : Fragment() {
 
     private var _binding: FragmentLoginBinding? = null
@@ -23,8 +26,6 @@ class LoginFragment : Fragment() {
 
     private val viewModel: LoginViewModel by viewModels()
     private lateinit var sessionManager: SessionManager
-    private lateinit var biometricPrompt: BiometricPrompt
-    private lateinit var promptInfo: BiometricPrompt.PromptInfo
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -40,79 +41,114 @@ class LoginFragment : Fragment() {
 
         sessionManager = SessionManager(requireContext())
 
-        // Check if already logged in
+        // Verificar si ya está logueado
         if (sessionManager.isLoggedIn()) {
             navigateToHome()
             return
         }
 
-        setupBiometric()
-        setupUI()
+        setupTextWatchers()
+        setupClickListeners()
     }
 
-    private fun setupUI() {
-        // Lottie animation click listener
-        binding.lottieFingerprint.setOnClickListener {
-            if (checkBiometricSupport()) {
-                biometricPrompt.authenticate(promptInfo)
+    private fun setupTextWatchers() {
+        val textWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                validateFields()
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        }
+
+        binding.etEmail.addTextChangedListener(textWatcher)
+        binding.etPassword.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val password = s.toString()
+
+                // Validación en tiempo real de mínimo 6 dígitos
+                if (password.isNotEmpty() && password.length < 6) {
+                    binding.tvPasswordError.visibility = View.VISIBLE
+                    binding.tilPassword.setBoxStrokeColorStateList(
+                        ContextCompat.getColorStateList(requireContext(), R.color.orange)!!
+                    )
+                } else {
+                    binding.tvPasswordError.visibility = View.GONE
+                    binding.tilPassword.boxStrokeColor = resources.getColor(android.R.color.white, null)
+                }
+
+                validateFields()
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+    }
+
+    private fun validateFields() {
+        val email = binding.etEmail.text.toString().trim()
+        val password = binding.etPassword.text.toString().trim()
+
+        val isValid = email.isNotEmpty() && password.length >= 6
+
+        binding.btnLogin.isEnabled = isValid
+        binding.tvRegister.isEnabled = isValid
+
+        // Cambiar colores según estado
+        if (isValid) {
+            binding.btnLogin.alpha = 1f
+            binding.tvRegister.setTextColor(resources.getColor(android.R.color.white, null))
+        } else {
+            binding.btnLogin.alpha = 0.5f
+            binding.tvRegister.setTextColor(resources.getColor(R.color.gray, null))
+        }
+    }
+
+    private fun setupClickListeners() {
+        binding.btnLogin.setOnClickListener {
+            performLogin()
+        }
+
+        binding.tvRegister.setOnClickListener {
+            performRegister()
+        }
+    }
+
+    private fun performLogin() {
+        val email = binding.etEmail.text.toString().trim()
+        val password = binding.etPassword.text.toString().trim()
+
+        binding.btnLogin.isEnabled = false
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = viewModel.login(email, password)
+
+            if (result.isSuccess) {
+                sessionManager.setLoggedIn(true)
+                Toast.makeText(requireContext(), "Login exitoso", Toast.LENGTH_SHORT).show()
+                navigateToHome()
+            } else {
+                binding.btnLogin.isEnabled = true
+                Toast.makeText(requireContext(), "Login incorrecto", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun setupBiometric() {
-        val executor = ContextCompat.getMainExecutor(requireContext())
+    private fun performRegister() {
+        val email = binding.etEmail.text.toString().trim()
+        val password = binding.etPassword.text.toString().trim()
 
-        biometricPrompt = BiometricPrompt(this, executor,
-            object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    super.onAuthenticationError(errorCode, errString)
-                    Toast.makeText(
-                        requireContext(),
-                        "Error de autenticación: $errString",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+        binding.tvRegister.isEnabled = false
 
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    super.onAuthenticationSucceeded(result)
-                    sessionManager.setLoggedIn(true)
-                    navigateToHome()
-                }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = viewModel.register(email, password)
 
-                override fun onAuthenticationFailed() {
-                    super.onAuthenticationFailed()
-                    Toast.makeText(
-                        requireContext(),
-                        "Huella no reconocida",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            })
-
-        promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Autenticación con Biometría")
-            .setSubtitle("Ingrese su huella digital")
-            .setNegativeButtonText("Cancelar")
-            .build()
-    }
-
-    private fun checkBiometricSupport(): Boolean {
-        val biometricManager = BiometricManager.from(requireContext())
-        when (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)) {
-            BiometricManager.BIOMETRIC_SUCCESS -> return true
-            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
-                Toast.makeText(requireContext(), "No hay sensor biométrico", Toast.LENGTH_SHORT).show()
-                return false
+            if (result.isSuccess) {
+                sessionManager.setLoggedIn(true)
+                Toast.makeText(requireContext(), "Registro exitoso", Toast.LENGTH_SHORT).show()
+                navigateToHome()
+            } else {
+                binding.tvRegister.isEnabled = true
+                Toast.makeText(requireContext(), "Error en el registro", Toast.LENGTH_SHORT).show()
             }
-            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
-                Toast.makeText(requireContext(), "Sensor no disponible", Toast.LENGTH_SHORT).show()
-                return false
-            }
-            BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> {
-                Toast.makeText(requireContext(), "No hay huellas registradas", Toast.LENGTH_SHORT).show()
-                return false
-            }
-            else -> return false
         }
     }
 

@@ -12,8 +12,7 @@ pluginManagement {
     }
 
     plugins {
-        // 👇 agrega la versión de Safe Args aquí
-        id("androidx.navigation.safeargs.kotlin") version "2.7.6"
+        id("androidx.navigation.safeargs.kotlin") version "2.8.5"
     }
 }
 
@@ -25,5 +24,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Miniproyecto1" // 👈 sin espacio
+rootProject.name = "Miniproyecto1"
 include(":app")
