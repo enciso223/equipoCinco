@@ -62,13 +62,7 @@ class EditProductFragment : Fragment() {
         binding.edtName.filters = arrayOf(InputFilter.LengthFilter(40))
 
         binding.edtPrice.filters = arrayOf(
-            InputFilter.LengthFilter(20),
-            InputFilter { source, start, end, _, _, _ ->
-                for (i in start until end) {
-                    if (!Character.isDigit(source[i])) return@InputFilter ""
-                }
-                null
-            }
+            InputFilter.LengthFilter(20)
         )
 
         binding.edtQuantity.filters = arrayOf(
@@ -111,7 +105,12 @@ class EditProductFragment : Fragment() {
                     currentProduct = product
                     binding.txtProductId.text = product.code.toString()
                     binding.edtName.setText(product.name)
-                    binding.edtPrice.setText(product.price.toString())
+                    val priceText = if (product.price % 1.0 == 0.0) {
+                        product.price.toInt().toString()
+                    } else {
+                        product.price.toString()
+                    }
+                    binding.edtPrice.setText(priceText)
                     binding.edtQuantity.setText(product.quantity.toString())
                 }
             }

@@ -68,15 +68,7 @@ class AddProductFragment : Fragment() {
         binding.etProductName.filters = arrayOf(InputFilter.LengthFilter(40))
 
         binding.etPrice.filters = arrayOf(
-            InputFilter.LengthFilter(20),
-            InputFilter { source, start, end, _, _, _ ->
-                for (i in start until end) {
-                    if (!Character.isDigit(source[i])) {
-                        return@InputFilter ""
-                    }
-                }
-                null
-            }
+            InputFilter.LengthFilter(20)
         )
 
         binding.etQuantity.filters = arrayOf(
