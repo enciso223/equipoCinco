@@ -69,9 +69,15 @@ class FirestoreService @Inject constructor(
     // Insertar producto
     suspend fun insertProduct(product: ProductDto): Result<String> {
         return try {
+            val userId = authService.getUserId()
+            android.util.Log.d("FirestoreService", "Inserting product for user: $userId")
+
             val docRef = getUserCollection().add(product).await()
+            android.util.Log.d("FirestoreService", "Product inserted with ID: ${docRef.id}")
+
             Result.success(docRef.id)
         } catch (e: Exception) {
+            android.util.Log.e("FirestoreService", "Error inserting product", e)
             Result.failure(e)
         }
     }

@@ -25,8 +25,9 @@ class HomeViewModel @Inject constructor(
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     fun loadProducts() {
-        // Verificar que el usuario esté logueado
-        if (!authService.isUserLoggedIn()) {
+        // ✅ Verificar autenticación ANTES de cargar
+        val currentUser = authService.getCurrentUser()
+        if (currentUser == null) {
             _products.value = emptyList()
             _isLoading.value = false
             return
@@ -41,6 +42,8 @@ class HomeViewModel @Inject constructor(
                     _isLoading.value = false
                 }
             } catch (e: Exception) {
+                // ✅ Log para debugging
+                android.util.Log.e("HomeViewModel", "Error loading products", e)
                 _products.value = emptyList()
                 _isLoading.value = false
             }
