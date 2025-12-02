@@ -1,22 +1,26 @@
 package com.univalle.equipocinco.util
 
 import android.content.Context
-import android.content.SharedPreferences
+import com.google.firebase.auth.FirebaseAuth
 
 class SessionManager(context: Context) {
 
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
     fun isLoggedIn(): Boolean {
-        return prefs.getBoolean("logged_in", false)
+        return auth.currentUser != null
     }
 
     fun setLoggedIn(value: Boolean) {
-        prefs.edit().putBoolean("logged_in", value).apply()
+        // Firebase Auth mantiene la sesión automáticamente
+        // Este método existe solo para compatibilidad
     }
 
     fun clearSession() {
-        prefs.edit().clear().apply()
+        auth.signOut()
+    }
+
+    fun getUserId(): String? {
+        return auth.currentUser?.uid
     }
 }

@@ -5,15 +5,15 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.univalle.equipocinco.data.local.entity.Product
+import com.univalle.equipocinco.data.remote.dto.ProductDto
 import com.univalle.equipocinco.databinding.ItemProductBinding
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
 class ProductAdapter(
-    private val onItemClick: (Product) -> Unit
-) : ListAdapter<Product, ProductAdapter.ProductViewHolder>(ProductDiffCallback()) {
+    private val onItemClick: (ProductDto) -> Unit
+) : ListAdapter<ProductDto, ProductAdapter.ProductViewHolder>(ProductDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProductViewHolder {
         val binding = ItemProductBinding.inflate(
@@ -31,21 +31,15 @@ class ProductAdapter(
 
     class ProductViewHolder(
         private val binding: ItemProductBinding,
-        private val onItemClick: (Product) -> Unit
+        private val onItemClick: (ProductDto) -> Unit
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(product: Product) {
+        fun bind(product: ProductDto) {
             binding.apply {
-                // Nombre del producto
                 tvProductName.text = product.name
-
-                // Id de producto
-                tvProductId.text = "Id: ${product.id}"
-
-
+                tvProductId.text = "Id: ${product.code}"
                 tvProductTotal.text = formatCurrency(product.price)
 
-                // Click en todo el item
                 root.setOnClickListener {
                     onItemClick(product)
                 }
@@ -62,12 +56,12 @@ class ProductAdapter(
         }
     }
 
-    private class ProductDiffCallback : DiffUtil.ItemCallback<Product>() {
-        override fun areItemsTheSame(oldItem: Product, newItem: Product): Boolean {
+    private class ProductDiffCallback : DiffUtil.ItemCallback<ProductDto>() {
+        override fun areItemsTheSame(oldItem: ProductDto, newItem: ProductDto): Boolean {
             return oldItem.id == newItem.id
         }
 
-        override fun areContentsTheSame(oldItem: Product, newItem: Product): Boolean {
+        override fun areContentsTheSame(oldItem: ProductDto, newItem: ProductDto): Boolean {
             return oldItem == newItem
         }
     }

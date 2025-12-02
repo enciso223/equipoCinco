@@ -40,9 +40,7 @@
             android:id="@+id/action_addProductFragment_to_homeFragment"
             app:destination="@id/homeFragment"
             app:popUpTo="@id/homeFragment"
-            app:popUpToInclusive="false"
-             />
-
+            app:popUpToInclusive="false" />
     </fragment>
 
     <fragment
@@ -50,18 +48,16 @@
         android:name="com.univalle.equipocinco.ui.detail.ProductDetailFragment"
         android:label="ProductDetailFragment">
 
-        <!-- ✅ ARGUMENTO CON VALOR POR DEFECTO (CRÍTICO) -->
+        <!-- ✅ Changed to String type for Firestore document IDs -->
         <argument
             android:name="productId"
-            app:argType="integer"
-            android:defaultValue="-1" />
+            app:argType="string"
+            android:defaultValue="" />
 
-        <!-- ✅ NAVEGACIÓN A EDITAR PRODUCTO -->
         <action
             android:id="@+id/action_productDetailFragment_to_editProductFragment"
             app:destination="@id/editProductFragment" />
 
-        <!-- ✅ NAVEGACIÓN DE REGRESO AL HOME -->
         <action
             android:id="@+id/action_productDetailFragment_to_homeFragment"
             app:destination="@id/homeFragment"
@@ -73,9 +69,10 @@
         android:id="@+id/editProductFragment"
         android:name="com.univalle.equipocinco.ui.editproduct.EditProductFragment"
         android:label="EditProductFragment">
+        <!-- ✅ Changed to String type for Firestore document IDs -->
         <argument
             android:name="productId"
-            app:argType="integer" />
+            app:argType="string" />
         <action
             android:id="@+id/action_editProductFragment_to_homeFragment"
             app:destination="@id/homeFragment"

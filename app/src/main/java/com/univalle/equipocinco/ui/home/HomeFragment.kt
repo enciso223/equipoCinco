@@ -13,12 +13,17 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.univalle.equipocinco.R
+import com.univalle.equipocinco.data.remote.firebase.FirebaseAuthService
 import com.univalle.equipocinco.databinding.FragmentHomeBinding
 import com.univalle.equipocinco.util.SessionManager
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class HomeFragment : Fragment() {
-
+    @Inject
+    lateinit var authService: FirebaseAuthService
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
@@ -29,18 +34,10 @@ class HomeFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        sessionManager = SessionManager(requireContext())
-        if (!sessionManager.isLoggedIn()) {
-            // Si NO hay sesión, redirigir al login
-            findNavController().navigate(R.id.action_homeFragment_to_loginFragment)
-            return
-        }
-
         requireActivity().onBackPressedDispatcher.addCallback(
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    // Enviar al escritorio del celular (NO al login)
                     requireActivity().moveTaskToBack(true)
                 }
             }
@@ -59,14 +56,26 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        sessionManager = SessionManager(requireContext())
+
+        if (!sessionManager.isLoggedIn() || !authService.isUserLoggedIn()) {
+            findNavController().navigate(R.id.action_homeFragment_to_loginFragment)
+            return
+        }
+
+        // 🔥 AHORA sí es seguro cargar productos
+        viewModel.loadProducts()
+
         setupRecyclerView()
         setupClickListeners()
         observeViewModel()
     }
 
+
+
+
     private fun setupRecyclerView() {
         productAdapter = ProductAdapter { product ->
-
             val action = HomeFragmentDirections
                 .actionHomeFragmentToProductDetailFragment(product.id)
             findNavController().navigate(action)
@@ -80,9 +89,8 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-
         binding.ivLogout.setOnClickListener {
-            sessionManager.clearSession()  // ✅ Este SÍ existe
+            sessionManager.clearSession()
             findNavController().navigate(R.id.action_homeFragment_to_loginFragment)
         }
 
@@ -94,8 +102,6 @@ class HomeFragment : Fragment() {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-
-                // Observar lista de productos
                 launch {
                     viewModel.products.collect { products ->
                         productAdapter.submitList(products)
@@ -104,11 +110,8 @@ class HomeFragment : Fragment() {
 
                 launch {
                     viewModel.isLoading.collect { isLoading ->
-                        binding.progressBar.visibility = if (isLoading) {
-                            View.VISIBLE
-                        } else {
-                            View.GONE
-                        }
+                        binding.progressBar.visibility =
+                            if (isLoading) View.VISIBLE else View.GONE
                     }
                 }
             }
